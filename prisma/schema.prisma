@@ -8,17 +8,117 @@ generator client {
   provider = "prisma-client-js"
 }
 
-
 datasource db {
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
   // directUrl = env("DIRECT_URL")
 }
 
 model Store {
-  id String @id @default(cuid())
-  name String
-  userID String
+  id         String      @id @default(cuid())
+  name       String
+  userID     String
+  billboards Billboard[] @relation("StoreToBillboards")
+  categories Category[]  @relation("StoreToCategory")
+  products   Product[]   @relation("StoreToProduct")
+  colors     Color[]     @relation("StoreToColor")
+  sizes      Size[]      @relation("StoreToSize")
+  orders     Order[]     @relation("StoreToOrder")
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+}
+
+model Billboard {
+  id         String     @id @default(uuid())
+  storeId    String
+  store      Store      @relation(fields: [storeId], references: [id], name: "StoreToBillboards")
+  label      String
+  imageUrl   String
+  categories Category[] @relation("BillboardToCategory")
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+}
+
+model Category {
+  id          String    @id @default(uuid())
+  storeId     String
+  store       Store     @relation(fields: [storeId], references: [id], name: "StoreToCategory")
+  billboardId String
+  billboard   Billboard @relation(fields: [billboardId], references: [id], name: "BillboardToCategory")
+  products    Product[] @relation("CategoryToProduct")
+  name        String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Size {
+  id        String    @id @default(uuid())
+  storeId   String
+  store     Store     @relation(fields: [storeId], references: [id], name: "StoreToSize")
+  products  Product[] @relation("SizeToProduct")
+  value     String
+  name      String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Color {
+  id        String    @id @default(uuid())
+  storeId   String
+  store     Store     @relation(fields: [storeId], references: [id], name: "StoreToColor")
+  products  Product[] @relation("ColorToProduct")
+  value     String
+  name      String
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Product {
+  id         String      @id @default(uuid())
+  storeId    String
+  store      Store       @relation(fields: [storeId], references: [id], name: "StoreToProduct")
+  categoryId String
+  category   Category    @relation(fields: [categoryId], references: [id], name: "CategoryToProduct")
+  name       String
+  price      Float
+  isFeatured Boolean     @default(false)
+  isArchived Boolean     @default(false)
+  images     Image[]     @relation("ProductToImage")
+  sizeId     String
+  size       Size        @relation(fields: [sizeId], references: [id], name: "SizeToProduct")
+  colorId    String
+  color      Color       @relation(fields: [colorId], references: [id], name: "ColorToProduct")
+  orderItems OrderItem[] @relation("ProductToOrderItem")
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+}
+
+model Image {
+  id        String   @id @default(uuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], name: "ProductToImage", onDelete: Cascade)
+  url       String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-} 
+}
+
+model Order {
+  id         String      @id @default(uuid())
+  storeId    String
+  store      Store       @relation(fields: [storeId], references: [id], name: "StoreToOrder")
+  orderItems OrderItem[] @relation("OrderToOrderItem")
+  isPaid     Boolean     @default(false)
+  phone      String      @default("")
+  address    String      @default("")
+  createdAt  DateTime    @default(now())
+  updatedAt  DateTime    @updatedAt
+}
+
+// OrderItem is intermediate table for Order and Product for many-to-many relationship
+model OrderItem {
+  id        String  @id @default(uuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id], name: "OrderToOrderItem")
+  productId String
+  product   Product @relation(fields: [productId], references: [id], name: "ProductToOrderItem")
+}
