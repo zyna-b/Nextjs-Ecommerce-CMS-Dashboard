@@ -21,6 +21,9 @@ export async function GET(
             where: {
                 id: categoryId,
             },
+            include: {
+                billboard: true, // Include the billboard details
+            }
         });
 
         return NextResponse.json(category);
