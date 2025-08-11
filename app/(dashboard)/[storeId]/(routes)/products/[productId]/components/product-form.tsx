@@ -40,15 +40,22 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
 // Form schema for validation
 const formSchema = z.object({
   name: z.string().min(1),
   images: z.object({ url: z.string().min(1) }).array(),
   price: z.coerce.number().min(1),
+  quantity: z.coerce.number().min(0),
   categoryId: z.string().min(1),
-  colorId: z.string().min(1),  // Changed from colorsId to colorId
-  sizeId: z.string().min(1),
+  colorIds: z.array(z.string()).min(1), // We can have multiple colors of a product
+  sizeIds: z.array(z.string()).min(1), // We can have multiple sizes of a product
+  description: z.string().min(10, "Description is required"),
   isFeatured: z.boolean().default(false).optional(),
   isArchived: z.boolean().default(false).optional(),
 });
@@ -59,11 +66,14 @@ interface ProductFormProps {
   initialData:
     | (Product & {
         images: PrismaImage[];
+        productColors?: { colorId: string }[];
+        productSizes?: { sizeId: string }[];
       })
     | null;
   categories: Category[];
   colors: Color[];
   sizes: Size[];
+  description: string; // Optional description prop for the form
 }
 
 const ProductForm: React.FC<ProductFormProps> = ({
@@ -79,7 +89,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
   const [loading, setLoading] = React.useState(false);
 
   const title = initialData ? "Edit Product" : "Create Product";
-  const description = initialData
+  const Description = initialData
     ? "Edit your product settings"
     : "Add a new product to your store";
   const action = initialData ? "Save changes" : "Create";
@@ -92,16 +102,19 @@ const ProductForm: React.FC<ProductFormProps> = ({
     defaultValues: initialData
       ? {
           ...initialData,
-          // Ensure images has the correct format
           images: initialData.images || [],
+          colorIds: initialData.productColors?.map((pc) => pc.colorId) || [],
+          sizeIds: initialData.productSizes?.map((ps) => ps.sizeId) || [],
         }
       : {
           name: "",
           images: [],
           price: 0,
+          quantity: 0,
           categoryId: "",
-          colorId: "",  // Changed from colorsId to colorId
-          sizeId: "",
+          colorIds: [],
+          sizeIds: [],
+          description: "",
           isFeatured: false,
           isArchived: false,
         },
@@ -110,18 +123,25 @@ const ProductForm: React.FC<ProductFormProps> = ({
   const onSubmit = async (data: ProductFormValues) => {
     try {
       setLoading(true);
-      
+
       console.log("Submitting data:", data);
       console.log("Form validation passed");
 
       if (initialData) {
         await axios.patch(
           `/api/${params.storeId}/products/${params.productId}`,
-          data
+          {
+            ...data,
+            colorIds: data.colorIds,
+            sizeIds: data.sizeIds,
+          }
         );
       } else {
-        console.log("Creating new product with data:", data);
-        await axios.post(`/api/${params.storeId}/products`, data);
+        await axios.post(`/api/${params.storeId}/products`, {
+          ...data,
+          colorIds: data.colorIds,
+          sizeIds: data.sizeIds,
+        });
       }
 
       router.refresh();
@@ -162,7 +182,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
       />
 
       <div className="flex items-center justify-between">
-        <Heading title={title} description={description} />
+        <Heading title={title} description={Description} />
 
         {initialData && (
           <Button
@@ -278,6 +298,25 @@ const ProductForm: React.FC<ProductFormProps> = ({
                 </FormItem>
               )}
             />
+            {/* Description */}
+            <FormField
+              control={form.control}
+              name="description"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <textarea
+                      disabled={loading}
+                      placeholder="Product description"
+                      {...field}
+                      className="w-full min-h-[100px] border rounded-md p-2"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
             {/* Price */}
             <FormField
               control={form.control}
@@ -290,6 +329,25 @@ const ProductForm: React.FC<ProductFormProps> = ({
                       type="number"
                       disabled={loading}
                       placeholder="9.99"
+                      {...field}
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            {/* Quantity */}
+            <FormField
+              control={form.control}
+              name="quantity"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Quantity</FormLabel>
+                  <FormControl>
+                    <Input
+                      type="number"
+                      disabled={loading}
+                      placeholder="1"
                       {...field}
                     />
                   </FormControl>
@@ -310,7 +368,7 @@ const ProductForm: React.FC<ProductFormProps> = ({
                     value={field.value}
                   >
                     <FormControl>
-                      <SelectTrigger>
+                      <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select a category" />
                       </SelectTrigger>
                     </FormControl>
@@ -329,28 +387,56 @@ const ProductForm: React.FC<ProductFormProps> = ({
             {/* Color */}
             <FormField
               control={form.control}
-              name="colorId"
+              name="colorIds"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Color</FormLabel>
-                  <Select
-                    disabled={loading}
-                    onValueChange={field.onChange}
-                    value={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a color" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {colors.map((color) => (
-                        <SelectItem key={color.id} value={color.id}>
-                          {color.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full justify-start"
+                      >
+                        {field.value.length === 0
+                          ? "Select colors"
+                          : colors
+                              .filter((c) => field.value.includes(c.id))
+                              .map((c) => c.name)
+                              .join(", ")}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-100 p-2">
+                      <div className="flex flex-col gap-y-3">
+                        {colors.map((color) => (
+                          <label
+                            key={color.id}
+                            className="flex gap-x-4 items-center cursor-pointer"
+                          >
+                            <Checkbox
+                              disabled={loading}
+                              checked={field.value.includes(color.id)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  field.onChange([...field.value, color.id]);
+                                } else {
+                                  field.onChange(
+                                    field.value.filter((id) => id !== color.id)
+                                  );
+                                }
+                              }}
+                            />
+                            <span
+                              className="w-6 h-6 rounded-full border mt-1"
+                              style={{ backgroundColor: color.value }}
+                              title={color.name}
+                            />
+                            <span className="text-xs mt-1">{color.name}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                   <FormMessage />
                 </FormItem>
               )}
@@ -358,28 +444,51 @@ const ProductForm: React.FC<ProductFormProps> = ({
             {/* Size */}
             <FormField
               control={form.control}
-              name="sizeId"
+              name="sizeIds"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Size</FormLabel>
-                  <Select
-                    disabled={loading}
-                    onValueChange={field.onChange}
-                    value={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select a size" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {sizes.map((size) => (
-                        <SelectItem key={size.id} value={size.id}>
-                          {size.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        className="w-full justify-start"
+                      >
+                        {field.value.length === 0
+                          ? "Select sizes"
+                          : sizes
+                              .filter((s) => field.value.includes(s.id))
+                              .map((s) => s.name)
+                              .join(", ")}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-100 p-2">
+                      <div className="flex flex-col gap-y-3">
+                        {sizes.map((size) => (
+                          <label
+                            key={size.id}
+                            className="flex gap-x-4 items-center cursor-pointer"
+                          >
+                            <Checkbox
+                              disabled={loading}
+                              checked={field.value.includes(size.id)}
+                              onCheckedChange={(checked) => {
+                                if (checked) {
+                                  field.onChange([...field.value, size.id]);
+                                } else {
+                                  field.onChange(
+                                    field.value.filter((id) => id !== size.id)
+                                  );
+                                }
+                              }}
+                            />
+                            <span className="text-xs mt-1">{size.name}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </PopoverContent>
+                  </Popover>
                   <FormMessage />
                 </FormItem>
               )}

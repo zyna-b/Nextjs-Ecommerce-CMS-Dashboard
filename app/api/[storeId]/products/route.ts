@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 
 export async function POST(
     req: Request,
-    {params}: {params: { storeId: string }} 
+    { params }: { params: { storeId: string } }
 ) {
     const { storeId } = await params;
     try {
@@ -13,10 +13,12 @@ export async function POST(
 
         const { name,
             price,
+            quantity,
             categoryId,
-            colorId,
-            sizeId,
+            colorIds,
+            sizeIds,
             images,
+            description,
             isFeatured,
             isArchived,
         } = body;
@@ -33,16 +35,22 @@ export async function POST(
             return new NextResponse("Price is required", { status: 400 });
         }
 
+        if (!quantity && quantity < 0) {
+            return new NextResponse("Invalid quantity", { status: 400 });
+        }
+
         if (!categoryId) {
             return new NextResponse("Category ID is required", { status: 400 });
         }
 
-        if (!sizeId) {
-            return new NextResponse("Size ID is required", { status: 400 });
+        if (!colorIds || !colorIds.length) {
+            return new NextResponse("Color IDs are required", { status: 400 });
         }
-
-        if (!colorId) {
-            return new NextResponse("Color ID is required", { status: 400 });
+        if (!sizeIds || !sizeIds.length) {
+            return new NextResponse("Size IDs are required", { status: 400 });
+        }
+        if (!description) {
+            return new NextResponse("Description is required", { status: 400 });
         }
 
         if (!images || !images.length) {
@@ -69,11 +77,11 @@ export async function POST(
             data: {
                 name: name,
                 price: price,
+                quantity: quantity,
+                description: description,
                 isFeatured: isFeatured,
                 isArchived: isArchived,
                 categoryId: categoryId,
-                colorId: colorId,
-                sizeId: sizeId,
                 storeId: storeId,
                 // Create images for the product
                 images: {
@@ -83,6 +91,20 @@ export async function POST(
                         ]
                     },
                 },
+                productColors: {
+                    create: colorIds.map((colorId: string) => ({
+                        color: {
+                            connect: { id: colorId }
+                        }
+                    })),
+                },
+                productSizes: {
+                    create: sizeIds.map((sizeId: string) => ({
+                        size: {
+                            connect: { id: sizeId }
+                        }
+                    })),
+                }
             }
         });
 
@@ -98,18 +120,16 @@ export async function POST(
 
 export async function GET(
     req: Request,
-    {params}: {params: { storeId: string }} 
+    { params }: { params: { storeId: string } }
 ) {
     const { storeId } = await params;
     try {
 
-        const {searchParams} = new URL(req.url);
+        const { searchParams } = new URL(req.url);
         const categoryId = searchParams.get("categoryId") || undefined;
-        const colorId = searchParams.get("colorId") || undefined;
-        const sizeId = searchParams.get("sizeId") || undefined;
         const isFeatured = searchParams.get("isFeatured");
 
-        
+
         if (!storeId) {
             return new NextResponse("Store ID is required", { status: 400 });
         }
@@ -118,16 +138,14 @@ export async function GET(
             where: {
                 storeId: storeId,
                 categoryId,
-                colorId,
-                sizeId,
                 isFeatured: isFeatured ? true : undefined,
                 isArchived: false,
             },
             include: {
                 images: true,
                 category: true,
-                color: true,
-                size: true,
+                productColors: { include: { color: true } },
+                productSizes: { include: { size: true } },
             },
             orderBy: {
                 createdAt: "desc",

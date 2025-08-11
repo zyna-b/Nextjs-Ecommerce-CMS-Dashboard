@@ -52,45 +52,78 @@ model Category {
 }
 
 model Size {
-  id        String    @id @default(uuid())
-  storeId   String
-  store     Store     @relation(fields: [storeId], references: [id], name: "StoreToSize")
-  products  Product[] @relation("SizeToProduct")
-  value     String
-  name      String
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id           String        @id @default(uuid())
+  storeId      String
+  store        Store         @relation(fields: [storeId], references: [id], name: "StoreToSize")
+  productSizes ProductSize[] @relation("SizeToProduct")
+  value        String
+  name         String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  OrderItem OrderItem[] @relation(name: "SizeToOrderItem")
 }
 
 model Color {
-  id        String    @id @default(uuid())
-  storeId   String
-  store     Store     @relation(fields: [storeId], references: [id], name: "StoreToColor")
-  products  Product[] @relation("ColorToProduct")
-  value     String
-  name      String
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  id            String         @id @default(uuid())
+  storeId       String
+  store         Store          @relation(fields: [storeId], references: [id], name: "StoreToColor")
+  productColors ProductColor[] @relation("ColorToProduct")
+  value         String
+  name          String
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+
+  OrderItem OrderItem[] @relation(name: "ColorToOrderItem")
 }
 
 model Product {
-  id         String      @id @default(uuid())
-  storeId    String
-  store      Store       @relation(fields: [storeId], references: [id], name: "StoreToProduct")
-  categoryId String
-  category   Category    @relation(fields: [categoryId], references: [id], name: "CategoryToProduct")
-  name       String
-  price      Float
-  isFeatured Boolean     @default(false)
-  isArchived Boolean     @default(false)
-  images     Image[]     @relation("ProductToImage")
-  sizeId     String
-  size       Size        @relation(fields: [sizeId], references: [id], name: "SizeToProduct")
-  colorId    String
-  color      Color       @relation(fields: [colorId], references: [id], name: "ColorToProduct")
-  orderItems OrderItem[] @relation("ProductToOrderItem")
-  createdAt  DateTime    @default(now())
-  updatedAt  DateTime    @updatedAt
+  id            String         @id @default(uuid())
+  storeId       String
+  store         Store          @relation(fields: [storeId], references: [id], name: "StoreToProduct")
+  categoryId    String
+  category      Category       @relation(fields: [categoryId], references: [id], name: "CategoryToProduct")
+  name          String
+  price         Float
+  isFeatured    Boolean        @default(false)
+  isArchived    Boolean        @default(false)
+  quantity      Int            @default(0)
+  images        Image[]        @relation("ProductToImage")
+  productColors ProductColor[] @relation("ColorToProduct")
+  productSizes  ProductSize[]  @relation("SizeToProduct")
+  orderItems    OrderItem[]    @relation("ProductToOrderItem")
+  description   String         @default("")
+  reviews       Review[]       @relation("ProductToReview")
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], name: "ProductToReview")
+  userId    String  // Clerk user ID
+  userEmail String? // Optional email for the user
+  userName  String? // Optional name for the user
+  rating    Int      @default(0)
+  comment   String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model ProductColor {
+  id        String  @id @default(uuid())
+  product   Product @relation(fields: [productId], references: [id], name: "ColorToProduct")
+  productId String
+  colorId   String
+  color     Color   @relation(fields: [colorId], references: [id], name: "ColorToProduct")
+}
+
+model ProductSize {
+  id        String  @id @default(uuid())
+  product   Product @relation(fields: [productId], references: [id], name: "SizeToProduct")
+  productId String
+  sizeId    String
+  size      Size    @relation(fields: [sizeId], references: [id], name: "SizeToProduct")
 }
 
 model Image {
@@ -120,5 +153,12 @@ model OrderItem {
   orderId   String
   order     Order   @relation(fields: [orderId], references: [id], name: "OrderToOrderItem")
   productId String
+  quantity  Int     @default(1)
   product   Product @relation(fields: [productId], references: [id], name: "ProductToOrderItem")
+  sizeId    String
+  size Size @relation(fields: [sizeId], references: [id], name: "SizeToOrderItem")
+  colorId   String
+  color Color @relation(fields: [colorId], references: [id], name: "ColorToOrderItem")
+  userId   String  // Clerk user ID
 }
+  

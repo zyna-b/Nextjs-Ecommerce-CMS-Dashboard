@@ -24,8 +24,8 @@ export async function GET(
             include: {
                 images: true,
                 category: true,
-                color: true,
-                size: true,
+                productColors: { include: { color: true } },
+                productSizes: { include: { size: true } },
             }
         });
 
@@ -36,8 +36,6 @@ export async function GET(
         return new NextResponse("Internal error ", { status: 500 });
     }
 }
-
-
 
 export async function PATCH(
     req: Request,
@@ -50,10 +48,12 @@ export async function PATCH(
 
         const { name,
             price,
+            quantity,
             categoryId,
-            colorId,
-            sizeId,
+            colorIds,
+            sizeIds,
             images,
+            description,
             isFeatured,
             isArchived,
         } = body;
@@ -82,17 +82,25 @@ export async function PATCH(
             return new NextResponse("Price is required", { status: 400 });
         }
 
+        if (!description) {
+            return new NextResponse("Description is required", { status: 400 });
+        }
+
+        if (quantity < 0) {
+            return new NextResponse("Invalid quantity", { status: 400 });
+        }
+
 
         if (!categoryId) {
             return new NextResponse("Category ID is required", { status: 400 });
         }
 
-        if (!sizeId) {
-            return new NextResponse("Size ID is required", { status: 400 });
+        if (!colorIds || !colorIds.length) {
+            return new NextResponse("Color IDs are required", { status: 400 });
         }
 
-        if (!colorId) {
-            return new NextResponse("Color ID is required", { status: 400 });
+        if (!sizeIds || !sizeIds.length) {
+            return new NextResponse("Size IDs are required", { status: 400 });
         }
 
         // Check if the store belongs to the user
@@ -114,14 +122,26 @@ export async function PATCH(
             data: {
                 name,
                 price,
+                quantity,
                 categoryId,
-                colorId,
-                sizeId,
                 images: {
                     deleteMany: {}
                 },
                 isFeatured,
                 isArchived,
+                description,
+                productColors: {
+                    deleteMany: {},
+                    createMany: {
+                        data: colorIds.map((colorId: string) => ({ colorId }))
+                    }
+                },
+                productSizes: {
+                    deleteMany: {},
+                    createMany: {
+                        data: sizeIds.map((sizeId: string) => ({ sizeId }))
+                    }
+                }
             }
         });
 
@@ -139,8 +159,8 @@ export async function PATCH(
             include: {
                 images: true,
                 category: true,
-                color: true,
-                size: true,
+                productColors: { include: { color: true } },
+                productSizes: { include: { size: true } },
             }
         })
 

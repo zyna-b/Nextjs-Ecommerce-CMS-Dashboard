@@ -28,19 +28,21 @@ export async function POST(
     req: Request,
     { params }: { params: { storeId: string } } // Extract storeId from URL params (e.g., /api/checkout/:storeId)
 ) {
-    // ---------------------------------------------
-    // 3.1: Read productIds from the POST request body
-    // ---------------------------------------------
-    const { productIds } = await req.json(); // Expecting: { productIds: [id1, id2, ...] }
 
-    // Validate: must include at least one product ID
-    if (!productIds || productIds.length === 0) {
-        return new NextResponse("Product IDs are required", { status: 400, headers: corsHeaders });
+    // ---------------------------------------------
+    // 3.1: Read cartItems from the POST request body
+    // ---------------------------------------------
+    const { cartItems } = await req.json(); // Expecting: { cartItems: [{ productId: id1, quantity: 2 }, ...] }
+    console.log(cartItems);
+    // Validate: must include at least one cart item
+    if (!cartItems || cartItems.length === 0) {
+        return new NextResponse("Cart items are required", { status: 400, headers: corsHeaders });
     }
 
     // ---------------------------------------------
     // 3.2: Fetch products from your DB that match the productIds
     // ---------------------------------------------
+    const productIds = cartItems.map(((item: { productId: unknown; }) => item.productId)); // Extract product IDs from cart items
     const products = await prismadb.product.findMany({
         where: {
             id: {
@@ -53,20 +55,20 @@ export async function POST(
     // 3.3: Prepare line_items array for Stripe Checkout
     // Each product gets converted into Stripe-compatible format
     // ---------------------------------------------
-    const line_items: Stripe.Checkout.SessionCreateParams.LineItem[] = [];
 
-    products.forEach((product) => {
-        line_items.push({
-            quantity: 1, // Default quantity is 1 (you can extend this in future)
+
+    const line_items: Stripe.Checkout.SessionCreateParams.LineItem[] = cartItems.map((item: { productId: string; quantity: number; }) => {
+        const product = products.find((p) => p.id === item.productId);
+
+        return {
             price_data: {
-                currency: "usd", // Price in USD
-                product_data: {
-                    name: product.name, // Product name shown in Stripe Checkout
-                },
-                unit_amount: product.price * 100, // Stripe expects price in cents → $10 = 1000
+                currency: "usd",
+                product_data: { name: product?.name },
+                unit_amount: product?.price ? product.price * 100 : 0, // Convert to cents
             },
-        });
-    });
+            quantity: item.quantity, // Quantity from cart item
+        }
+    })
 
     // ---------------------------------------------
     // 3.4: Extract the store ID from route params
@@ -82,10 +84,18 @@ export async function POST(
             storeId: storeID,
             isPaid: false, // Mark it unpaid initially
             orderItems: {
-                create: productIds.map((productId: string) => ({
+                create: cartItems.map((item: {
+                    colorId: unknown;
+                    sizeId: unknown;
+                    productId: unknown;
+                    quantity: unknown;
+                }) => ({
                     product: {
-                        connect: { id: productId }, // Link each product to the order
-                    }
+                        connect: { id: item.productId }, // Link each product to the order
+                    },
+                    quantity: item.quantity,
+                    size: { connect: { id: item.sizeId } },
+                    color: { connect: { id: item.colorId } }
                 })),
             }
         }

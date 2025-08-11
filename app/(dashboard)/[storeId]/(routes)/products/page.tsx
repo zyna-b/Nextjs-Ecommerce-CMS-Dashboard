@@ -16,9 +16,9 @@ const ProductsPage = async ({ params }: { params: { storeId: string } }) => {
     },
     include: {
       category: true,
-      size: true,
-      color: true,
-    },   
+      productColors: { include: { color: true } },
+      productSizes: { include: { size: true } },
+    },
     orderBy: {
       createdAt: "desc",
     },
@@ -29,8 +29,16 @@ const ProductsPage = async ({ params }: { params: { storeId: string } }) => {
     name: product.name,
     price: formatter.format(product.price),
     category: product.category.name,
-    size: product.size.name,
-    color: product.color.value,
+    size: product.productSizes
+      .map((ps) => ps.size?.name)
+      .filter(Boolean)
+      .join(", "),
+    color: product.productColors
+      .map((pc) => pc.color?.value)
+      .filter(Boolean)
+      .join(", "),
+    quantity: product.quantity,
+    description: product.description,
     isFeatured: product.isFeatured,
     isArchived: product.isArchived,
     createdAt: format(product.createdAt, "MMMM do, yyyy"),

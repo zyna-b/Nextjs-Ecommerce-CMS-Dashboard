@@ -8,7 +8,6 @@ interface ProductPageProps {
   }
 }
 
-
 const ProductPage: React.FC<ProductPageProps> = async ({
   params,
 }) => {
@@ -22,6 +21,8 @@ const {  productId, storeId } = await params;
     },
     include: {
       images: true,
+      productColors: { include: { color: true } },
+      productSizes: { include: { size: true } },
     },
   });
 
@@ -50,6 +51,7 @@ const {  productId, storeId } = await params;
         categories={categories}
         colors={colors}
         sizes={sizes}
+        description={product?.description || ""}
         initialData={product} />
       </div>
     </div>
