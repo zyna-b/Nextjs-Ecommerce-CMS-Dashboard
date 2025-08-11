@@ -4,6 +4,8 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue?style=for-the-badge&logo=typescript)](https://www.typescriptlang.org/)
 [![Prisma](https://img.shields.io/badge/Prisma-5.0-2D3748?style=for-the-badge&logo=prisma)](https://www.prisma.io/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-38B2AC?style=for-the-badge&logo=tailwind-css)](https://tailwindcss.com/)
+[![Stripe](https://img.shields.io/badge/Stripe-API-blue?style=for-the-badge&logo=stripe)](https://stripe.com/docs)
+[![shadcn/ui](https://img.shields.io/badge/shadcn-ui-38B2AC?style=for-the-badge&logo=shadcn)](https://ui.shadcn.com/)
 
 A powerful, modern, and feature-rich **e-commerce content management system (CMS)** built with **Next.js 15**, **TypeScript**, and **Prisma**. This admin dashboard provides complete control over your online store with an intuitive interface, robust API, and beautiful UI.
 
