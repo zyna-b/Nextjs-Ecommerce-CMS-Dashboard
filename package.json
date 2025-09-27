@@ -1,6 +1,39 @@
 {
-  "name": "ecommerce-admin",
+  "name": "nextjs-ecommerce-cms-dashboard",
   "version": "0.1.0",
+  "description": "A powerful, modern e-commerce CMS dashboard built with Next.js 15, TypeScript, Prisma, and shadcn/ui. Features multi-store management, product catalog, order tracking, and beautiful admin interface.",
+  "keywords": [
+    "nextjs",
+    "ecommerce",
+    "cms",
+    "dashboard",
+    "admin-panel",
+    "typescript",
+    "prisma",
+    "shadcn-ui",
+    "clerk-auth",
+    "cloudinary",
+    "tailwindcss",
+    "react",
+    "postgresql",
+    "stripe",
+    "store-management",
+    "product-management",
+    "order-management"
+  ],
+  "author": {
+    "name": "zyna-b",
+    "url": "https://github.com/zyna-b"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/zyna-b/Nextjs-Ecommerce-CMS-Dashboard.git"
+  },
+  "homepage": "https://github.com/zyna-b/Nextjs-Ecommerce-CMS-Dashboard#readme",
+  "bugs": {
+    "url": "https://github.com/zyna-b/Nextjs-Ecommerce-CMS-Dashboard/issues"
+  },
+  "license": "MIT",
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
